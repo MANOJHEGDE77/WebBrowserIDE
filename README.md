@@ -27,23 +27,42 @@
   <tr>
     <td width="160" align="center" valign="middle">
       <a href="https://github.com/MANOJHEGDE77">
-        <img src="https://avatars.githubusercontent.com/u/203658850?v=4" width="140" height="140" style="border-radius: 50%; border: 3px solid #009688;" alt="Manoj Hegde" />
+        <img src="https://avatars.githubusercontent.com/u/203658850?v=4" width="140" height="140" style="border-radius: 50%; border: 3px solid #009688;" alt="Manoj M Hegde" />
       </a>
       <br/>
-      <b>Manoj Hegde</b>
+      <b>Manoj M Hegde</b>
     </td>
     <td valign="middle">
-      <h3>👋 Hi, I'm Manoj Hegde!</h3>
+      <h3>👋 Hi, I'm Manoj M Hegde</h3>
       <p>
-        I am a <b>Full-Stack & Embedded Systems Developer</b> passionate about bridging the gap between web software, generative artificial intelligence, and physical electronics engineering.
+        I'm a <b>Computer Science & Data Science undergraduate</b> interested in <b>Java backend development, problem solving, and building practical software projects</b>.
+      </p>
+      <h4>💻 Currently Learning</h4>
+      <ul>
+        <li>☕ Java & Object-Oriented Programming</li>
+        <li>🧠 Data Structures & Algorithms</li>
+        <li>🌱 Spring Boot & REST APIs</li>
+        <li>🔐 Spring Security</li>
+        <li>🗄️ MySQL, PostgreSQL & MongoDB</li>
+        <li>🐍 Python</li>
+        <li>🤖 Generative AI & AI-powered applications</li>
+        <li>🐳 Docker & backend deployment</li>
+      </ul>
+      <h4>🛠️ Technologies</h4>
+      <p>
+        <b>Languages:</b> Java, Python, SQL<br/>
+        <b>Backend:</b> Spring Boot, REST APIs<br/>
+        <b>Databases:</b> MySQL, PostgreSQL, MongoDB<br/>
+        <b>Tools:</b> Git, GitHub, IntelliJ IDEA, VS Code, Docker
       </p>
       <p>
-        <b>WebBrowserIDE</b> was created to provide makers, students, and engineers with an integrated environment: write microcontroller firmware directly in the browser with Monaco Editor, and leverage local LLMs (Gemma 3 & Qwen3) to automatically discover, budget, and recommend real DigiComp hardware components for DIY electronics projects.
+        🚀 <i>I enjoy building projects, learning by solving problems, and continuously improving my programming and backend development skills.</i><br/>
+        📚 <i>Currently focused on strengthening my <b>Java, DSA, backend development, and problem-solving skills</b>.</i>
       </p>
+      <blockquote><b>Learn. Build. Solve. Improve. 🚀</b></blockquote>
       <p>
         🌐 <b>GitHub:</b> <a href="https://github.com/MANOJHEGDE77">@MANOJHEGDE77</a> &nbsp;|&nbsp;
-        📫 <b>Email:</b> <a href="mailto:kannimmhegde123@gmail.com">kannimmhegde123@gmail.com</a> &nbsp;|&nbsp;
-        💼 <b>Focus:</b> Next.js, FastAPI, Monaco IDE, IoT (ESP32/Arduino), Local LLMs
+        📫 <b>Email:</b> <a href="mailto:kannimmhegde123@gmail.com">kannimmhegde123@gmail.com</a>
       </p>
     </td>
   </tr>
@@ -288,5 +307,5 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 <div align="center">
-  <sub>Developed with ❤️ by <a href="https://github.com/MANOJHEGDE77">Manoj Hegde</a></sub>
+  <sub>Developed with ❤️ by <a href="https://github.com/MANOJHEGDE77">Manoj M Hegde</a></sub>
 </div>

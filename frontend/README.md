@@ -56,4 +56,4 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 👨‍💻 Developer
 
-Developed by **[Manoj Hegde](https://github.com/MANOJHEGDE77)**.
+Developed by **[Manoj M Hegde](https://github.com/MANOJHEGDE77)**.
