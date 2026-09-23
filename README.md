@@ -1,124 +1,292 @@
-# DigiComp AI Demo
+# ⚡ WebBrowserIDE — DigiComp AI & Hardware Code Lab
 
-A small end-to-end demo of an AI shopping/project assistant:
+<div align="center">
 
-User -> Gemma 3 270M -> component requirements -> SQLite product search -> Gemma 3 final response -> product cards
+[![Next.js](https://img.shields.io/badge/Next.js-16.3-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org/)
+[![Ollama](https://img.shields.io/badge/AI_Model-Gemma_3_270M-FF6F00?style=for-the-badge)](https://ollama.ai/)
+[![Monaco Editor](https://img.shields.io/badge/Web_IDE-Monaco_Editor-007ACC?style=for-the-badge&logo=visualstudiocode)](https://microsoft.github.io/monaco-editor/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS_v4-38B2AC?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-## Requirements
+<br/>
 
-- Python 3.10+
-- Ollama
-- Gemma 3 270M model (`gemma3:270m` - default) or Qwen3 (`qwen3:1.7b` / `qwen3:4b` - fallback)
+**A Next-Generation Web Platform Combining an In-Browser Hardware IDE (Monaco Editor) with an AI Electronics Shopping & Engineering Assistant powered by Local LLMs.**
 
-## 1. Install Ollama and Gemma 3 270M
+[Explore Features](#-key-features) • [Quick Start](#-quick-start) • [Architecture](#-architecture) • [Hardware Lab](#-hardware-code-lab-in-browser-ide) • [Author Bio](#-about-the-developer)
 
-Install Ollama, then pull the active model:
+</div>
+
+---
+
+## 👨‍💻 About the Developer
+
+<table align="center" width="100%">
+  <tr>
+    <td width="160" align="center" valign="middle">
+      <a href="https://github.com/MANOJHEGDE77">
+        <img src="https://avatars.githubusercontent.com/u/203658850?v=4" width="140" height="140" style="border-radius: 50%; border: 3px solid #009688;" alt="Manoj Hegde" />
+      </a>
+      <br/>
+      <b>Manoj Hegde</b>
+    </td>
+    <td valign="middle">
+      <h3>👋 Hi, I'm Manoj Hegde!</h3>
+      <p>
+        I am a <b>Full-Stack & Embedded Systems Developer</b> passionate about bridging the gap between web software, generative artificial intelligence, and physical electronics engineering.
+      </p>
+      <p>
+        <b>WebBrowserIDE</b> was created to provide makers, students, and engineers with an integrated environment: write microcontroller firmware directly in the browser with Monaco Editor, and leverage local LLMs (Gemma 3 & Qwen3) to automatically discover, budget, and recommend real DigiComp hardware components for DIY electronics projects.
+      </p>
+      <p>
+        🌐 <b>GitHub:</b> <a href="https://github.com/MANOJHEGDE77">@MANOJHEGDE77</a> &nbsp;|&nbsp;
+        📫 <b>Email:</b> <a href="mailto:kannimmhegde123@gmail.com">kannimmhegde123@gmail.com</a> &nbsp;|&nbsp;
+        💼 <b>Focus:</b> Next.js, FastAPI, Monaco IDE, IoT (ESP32/Arduino), Local LLMs
+      </p>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 📖 Table of Contents
+
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+  - [1. Hardware Code Lab (In-Browser IDE)](#1-hardware-code-lab-in-browser-ide)
+  - [2. DigiComp AI Shopping & Project Assistant](#2-digicomp-ai-shopping--project-assistant)
+  - [3. Interactive Component Catalog & Store](#3-interactive-component-catalog--store)
+  - [4. Authentication & Chat Persistence](#4-authentication--chat-persistence)
+- [Architecture](#-architecture)
+- [Supported Microcontrollers](#-supported-microcontrollers)
+- [Quick Start](#-quick-start)
+  - [Prerequisites](#prerequisites)
+  - [1. Ollama & AI Setup](#1-ollama--ai-setup)
+  - [2. Backend Setup (FastAPI)](#2-backend-setup-fastapi)
+  - [3. Frontend Setup (Next.js)](#3-frontend-setup-nextjs)
+- [Repository Structure](#-repository-structure)
+- [Demo AI Prompts](#-demo-ai-prompts)
+- [Contributing & License](#-license)
+
+---
+
+## 🌟 Overview
+
+**WebBrowserIDE** brings the power of desktop IDEs and AI engineering assistance straight to the web browser:
+
+1. **Hardware Code Lab**: An in-browser IDE powered by VS Code's **Monaco Editor**, enabling engineers to write, edit, format, and simulate C++ firmware for popular microcontrollers (Arduino Uno, Arduino Nano, and ESP32 DevKit).
+2. **DigiComp AI Assistant**: An intelligent assistant using ultra-lightweight **Gemma 3 270M** (or **Qwen3**) running locally via **Ollama**. It parses user goals ("I want to build an obstacle avoiding robot under ₹1000") and executes deterministic function-calling against a local SQLite product catalog to deliver exact bill-of-materials and product cards with zero external dependencies.
+
+---
+
+## ✨ Key Features
+
+### 1. Hardware Code Lab (In-Browser IDE)
+- 🖥️ **Monaco Code Editor**: Full-featured C/C++ editor with syntax highlighting, line numbers, bracket matching, and auto-indentation.
+- 🎯 **Board Selection**: Instant switching between **Arduino Uno R3**, **Arduino Nano**, and **ESP32 DevKit V1**.
+- ⚡ **Sketch Templates**: Pre-loaded starter templates for **Blink**, **WiFi Network Scanner**, and **Analog Sensor Telemetry**.
+- 📡 **Simulated Serial Monitor**: Real-time serial monitor with timestamped diagnostic output and selectable baud rates (9600, 115200, etc.).
+- 🛠️ **Syntax Verification**: In-browser compiler simulation reporting memory usage (Flash/SRAM) and compilation status.
+
+### 2. DigiComp AI Shopping & Project Assistant
+- 🧠 **Local LLM Execution**: Powered by Ollama (`gemma3:270m` by default for sub-second responses; fallback to `qwen3:1.7b` / `qwen3:4b`).
+- 🔍 **Autonomous Function Calling**: The model calls `search_digicomp_products(query, max_price)` to pull real items from the SQLite database.
+- 💰 **Budget Constraints**: Under-the-hood price parser handles queries like *"ESP32 under ₹500"* or *"motor driver below ₹300"*.
+- 🧹 **Zero Hallucination Filter**: All product specifications, prices, and stock numbers come directly from SQLite; no fabricated specs.
+- 💬 **Conversation Management**: Multi-turn dialogue context with persistent conversation history, title generation, and conversation rename/delete.
+
+### 3. Interactive Component Catalog & Store
+- 🛒 **20+ Curated Products**: Microcontrollers, motor drivers, sensors (ultrasonic, soil moisture, DHT22), power modules, and chassis kits.
+- 🎨 **Self-Contained SVG Assets**: Dynamic, self-hosted SVG product schematics—zero external image dependencies or broken CDNs.
+- 🏷️ **Categorization & Filtering**: Filter by category (Microcontrollers, Sensors, Motors, Power, Automation) and price.
+- 🛍️ **Shopping Cart**: Real-time client-side shopping cart with badge counters and checkout drawer.
+
+### 4. Authentication & Chat Persistence
+- 🔐 **User Accounts**: Register and sign in with secure password hashing.
+- 🍪 **Session Management**: Cookie-based and token-based session verification across FastAPI and Next.js.
+- 💾 **Database Backed**: Saved conversations and messages stored per user in SQLite.
+
+---
+
+## 🏗 Architecture
+
+```mermaid
+graph TD
+    User([User / Browser])
+
+    subgraph Frontend ["Next.js 16 (Port 3000)"]
+        UI[Store & Hardware Lab UI]
+        Monaco[Monaco C++ Code Editor]
+        ChatWidget[AI Chat Interface]
+        NextAPI["/api/ai/chat & /api/hardware"]
+    end
+
+    subgraph Backend ["FastAPI Backend (Port 8080)"]
+        FastAPIApp[FastAPI REST API]
+        AuthEngine[Auth & Session Engine]
+        HardwareCatalog[Hardware Board Profiles]
+    end
+
+    subgraph Storage_and_AI ["Local Services"]
+        SQLite[(SQLite DB: digicomp.db)]
+        Ollama[Ollama Engine: gemma3:270m]
+    end
+
+    User <--> UI
+    UI --> Monaco
+    UI --> ChatWidget
+    ChatWidget --> NextAPI
+    NextAPI --> Ollama
+    NextAPI --> SQLite
+    UI <--> FastAPIApp
+    FastAPIApp <--> SQLite
+    FastAPIApp --> HardwareCatalog
+    FastAPIApp --> AuthEngine
+```
+
+---
+
+## 🔌 Supported Microcontrollers
+
+| Board | MCU | Clock Speed | Flash Memory | SRAM | Operating Voltage | Default Baud |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Arduino Uno R3** | ATmega328P | 16 MHz | 32 KB | 2 KB | 5V | 9600 |
+| **Arduino Nano** | ATmega328P | 16 MHz | 30 KB | 2 KB | 5V | 9600 |
+| **ESP32 DevKit V1** | ESP32-D0WDQ6 | 240 MHz | 4 MB | 520 KB | 3.3V | 115200 |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- **Node.js**: v18.0.0 or higher
+- **Python**: v3.10 or higher
+- **Ollama**: [Download & install Ollama](https://ollama.ai/)
+
+---
+
+### 1. Ollama & AI Setup
+
+Pull the recommended ultra-fast model (or Qwen fallback):
 
 ```bash
 ollama pull gemma3:270m
 ```
 
-Verify:
-
+Verify that Ollama is responding:
 ```bash
 ollama run gemma3:270m
 ```
 
-*(Optional fallback: If you want to use Qwen models, run `ollama pull qwen3:1.7b` or `ollama pull qwen3:4b`)*
+---
 
-## 2. Set up Python
+### 2. Backend Setup (FastAPI)
 
-From this folder:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-On Windows:
+From the project root directory:
 
 ```powershell
+# Optional: create and activate virtual environment
+python -m venv .venv
 .venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run the FastAPI server on port 8080
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8080 --reload
 ```
 
-## 3. Model Configuration
+> **API Swagger Docs**: Visit [http://127.0.0.1:8080/docs](http://127.0.0.1:8080/docs) to test API endpoints interactively.
 
-The application uses `gemma3:270m` by default for ultra-lightweight, high-speed conversational responses. You can configure the active model via environment variables without changing source code:
+---
 
-```bash
-# Default active model (ultra-fast 270M parameter model):
-export AI_MODEL=gemma3:270m
+### 3. Frontend Setup (Next.js)
 
-# Switch to other models if needed:
-export AI_MODEL=qwen3:1.7b
-export AI_MODEL=qwen3:4b
-```
+Open a second terminal window:
 
-## 4. Start the backend
-
-FastAPI backend:
-```bash
-uvicorn backend.main:app --reload
-```
-
-Next.js full-stack app (in `frontend/` directory):
-```bash
+```powershell
 cd frontend
+npm install
 npm run dev
 ```
 
-Open:
+Open your browser at:
+👉 **[http://localhost:3000](http://localhost:3000)**
 
-- FastAPI: http://127.0.0.1:8000
-- Next.js: http://localhost:3000
+- **Store & AI Chat**: `http://localhost:3000/` and `http://localhost:3000/ai`
+- **Hardware Code Lab**: `http://localhost:3000/hardware-lab`
 
-The demo automatically creates `data/digicomp.db` and seeds 20 sample products.
+---
 
-## 5. Demo questions
+## 📁 Repository Structure
 
-Try:
-
-- I want to build an obstacle avoiding robot
-- I want to build a smart irrigation system
-- I need an ESP32 under ₹500
-- I want to build a weather station
-- I need a motor driver for a 12V project
-- What do I need for a line follower robot?
-
-## Notes
-
-- Product information is intentionally local and deterministic.
-- DigiComp AI does not invent prices, stock, images, or URLs.
-- Product images are generated SVG placeholders stored in the database as data URLs, so the demo has zero external image dependencies.
-- The "Add to Cart" button is a working demo cart counter; it does not connect to a real store.
-- If Ollama is unavailable, the API returns an informative error.
-
-## Important product-source rule
-
-The assistant is intentionally split into two responsibilities:
-
-1. Gemma 3 270M extracts the user's intent and generic component requirements.
-2. The backend searches ONLY the DigiComp catalog stored in the local database.
-
-The LLM does not generate product names, prices, stock, images, or URLs.
-
-The included `scripts_crawl_site.py` is an optional starting point for syncing a real DigiComp website. Give it the real DigiComp domain:
-
-```bash
-python scripts_crawl_site.py https://YOUR-DIGICOMP-DOMAIN
+```
+WebBrowserIDE/
+├── backend/
+│   ├── __init__.py
+│   ├── ai.py                   # Ollama integration & function-calling pipeline
+│   ├── db.py                   # SQLite schemas, tables, and CRUD operations
+│   ├── main.py                 # FastAPI REST API routes & hardware catalog
+│   └── products.py             # 20 seeded electronics components
+├── data/
+│   └── .gitkeep                # Local SQLite database directory (auto-created)
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── ai/page.tsx             # Standalone AI Chat view
+│   │   │   ├── hardware-lab/page.tsx   # Web Browser IDE with Monaco Editor
+│   │   │   ├── products/               # Product details & catalog pages
+│   │   │   └── api/                    # Next.js API route handlers
+│   │   ├── components/                 # UI components (Header, Footer, Cards)
+│   │   ├── context/                    # AuthContext and CartContext
+│   │   ├── lib/                        # Client API and DB helpers
+│   │   └── types/                      # TypeScript definitions (Hardware, Chat)
+│   ├── public/images/products/         # Self-contained SVG hardware illustrations
+│   └── package.json
+├── scripts/                            # E2E test suites & latency benchmarks
+├── requirements.txt                    # Python dependencies (fastapi, uvicorn, etc.)
+└── README.md                           # Documentation & Developer Bio
 ```
 
-It stays on that domain and looks for product JSON-LD in pages discovered through the site's sitemap. The real website URL and/or its product/API structure are required before wiring the demo to the actual catalog.
+---
 
-## Assistant behavior
+## 💬 Demo AI Prompts
 
-The assistant answers general and technical questions as well as project/product questions.
-- "Hello" -> conversational answer, no products.
-- "Who invented the transistor?" -> factual answer, no products.
-- "What is an ESP32?" -> concise explanation + matching DigiComp products if present in the local catalog.
-- Project requests -> concise requirements + matching DigiComp products.
-- Product requests -> concise answer + matching DigiComp products.
+Try asking the assistant:
 
-The LLM never supplies product prices, stock, images, URLs, or external shopping links. Those fields always come from the DigiComp catalog database.
+- 🤖 *"I want to build an obstacle avoiding robot. What components do I need?"*
+- 🌱 *"Help me design a smart irrigation system with a water pump."*
+- 💰 *"Find me an ESP32 board under ₹500."*
+- 🌡️ *"What parts do I need for an IoT weather telemetry station?"*
+- 🚗 *"I need a 12V motor driver and geared DC motor for a robot."*
+
+---
+
+## 🧪 Testing & Benchmarks
+
+Run automated end-to-end tests and benchmarks:
+
+```powershell
+# Test query latency benchmark
+node scripts/benchmark_latency.js
+
+# Test end-to-end multi-turn chat pipeline
+node scripts/test_end_to_end.js
+
+# Test Python backend AI logic
+python scripts/test_all_10_queries.py
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<div align="center">
+  <sub>Developed with ❤️ by <a href="https://github.com/MANOJHEGDE77">Manoj Hegde</a></sub>
+</div>

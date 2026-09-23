@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🖥️ WebBrowserIDE — Frontend Application
 
-## Getting Started
+Next.js 16 full-stack web application for **WebBrowserIDE**, featuring an **In-Browser Hardware Code Lab (Monaco Editor)** and the **DigiComp AI Shopping Assistant**.
 
-First, run the development server:
+---
 
+## ⚡ Tech Stack
+
+- **Framework**: [Next.js 16.3](https://nextjs.org/) (App Router)
+- **UI & Components**: [React 19](https://react.dev/), [Lucide React](https://lucide.dev/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Code Editor**: [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) (VS Code Editor in browser)
+- **Local AI Engine**: [Ollama](https://ollama.ai/) with `gemma3:270m`
+- **Database**: [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Run the Development Server
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 📂 Key Pages & Features
 
-To learn more about Next.js, take a look at the following resources:
+| Route | Description |
+| :--- | :--- |
+| `/` | E-Commerce store homepage with component catalog, search, and category filters. |
+| `/hardware-lab` | **Hardware Code Lab**: In-browser IDE using Monaco Editor for Arduino Uno, Nano, and ESP32 DevKit sketches. |
+| `/ai` | Dedicated AI assistant chat interface with multi-turn conversation sidebar. |
+| `/products/[id]` | Component detail page with specs, pinout info, and add-to-cart. |
+| `/cart` | Shopping cart drawer and checkout flow. |
+| `/login` & `/signup` | User authentication pages. |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🔌 API Routes
 
-## Deploy on Vercel
+- `POST /api/ai/chat`: Streaming & multi-turn chat pipeline with local Ollama model.
+- `GET/POST /api/ai/conversations`: Conversation history persistence.
+- `GET /api/hardware/devices`: Returns microcontroller board specs (clock speed, memory, baud rates).
+- `POST /api/hardware/compile`: Simulates C++ firmware compilation and reports memory metrics.
+- `GET /api/products`: Full catalog search and filter endpoint.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 👨‍💻 Developer
+
+Developed by **[Manoj Hegde](https://github.com/MANOJHEGDE77)**.
