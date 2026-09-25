@@ -39,6 +39,7 @@ import {
   CheckSquare,
   Square,
   ArrowLeft,
+  Radio,
 } from 'lucide-react';
 import { HardwareDevice, ProblemMarker, CompilationResult } from '@/types/hardware';
 import { HARDWARE_DEVICES } from '@/app/api/hardware/devices/route';
@@ -47,10 +48,10 @@ import { HARDWARE_DEVICES } from '@/app/api/hardware/devices/route';
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 text-slate-400">
+    <div className="flex-1 flex flex-col items-center justify-center bg-[#0B0F17] text-slate-400">
       <div className="flex items-center gap-3">
-        <Cpu className="w-5 h-5 text-sky-400 animate-spin" />
-        <span className="text-sm font-mono">Loading Monaco Editor environment...</span>
+        <Cpu className="w-5 h-5 text-[#FF6D33] animate-spin" />
+        <span className="text-sm font-mono text-slate-300">Loading DigiComp Hardware Lab Monaco Editor...</span>
       </div>
     </div>
   ),
@@ -59,7 +60,7 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
 type TabType = 'output' | 'problems' | 'serial';
 type SideTab = 'files' | 'specs' | 'safety';
 
-// Standard hardware project presets matching DigiComp products
+// Standard hardware project presets matching official Digicomp products
 const EXAMPLE_PRESETS: Array<{
   id: string;
   name: string;
@@ -68,211 +69,328 @@ const EXAMPLE_PRESETS: Array<{
   files: Record<string, string>;
 }> = [
   {
-    id: 'blink',
-    name: 'LED Blink & Heartbeat',
-    deviceId: 'arduino-uno',
-    description: 'Basic GPIO digital pin state machine for onboard testing.',
+    id: 'esp32s3-radiant-glow',
+    name: '✨ ESP32-S3 Light Glow & Breathing Pulse',
+    deviceId: 'esp32-s3',
+    description: 'Smooth sinusoidal breathing glow & high-radiance light for ESP32-S3 (GPIO 48 & GPIO 2).',
     files: {
-      'main.cpp': `// DigiComp Hardware Lab - Basic Blink & Heartbeat
+      'main.cpp': `// Digicomp Technologies - ESP32-S3 Radiant Light Glow System
+// Target: Digicomp ESP32-S3 Flagship Dev Board (SKU: DC-ESP32S3-01)
+// 1. Smooth Sinusoidal Breathing Light Glow (PWM Analog Fading)
+// 2. High-Radiance Solid Glow Mode
+// 3. Serial Monitor Interactive Brightness & Mode Control
 #include <Arduino.h>
 #include "config.h"
 
-int ledState = LOW;
-unsigned long previousMillis = 0;
+// Breathing animation state variables
+float glowAngle = 0.0;
+unsigned long lastGlowUpdate = 0;
+int currentBrightness = 0;
+String currentMode = "BREATHE"; // "BREATHE", "SOLID_ON", "OFF"
 
 void setup() {
-  pinMode(LED_PIN, OUTPUT);
   Serial.begin(BAUD_RATE);
-  Serial.println("=== DigiComp LED Blink Demo ===");
+  pinMode(LED_GLOW_PIN, OUTPUT);
+  pinMode(ONBOARD_STATUS_PIN, OUTPUT);
+
+  // Turn ON light glow immediately on boot
+  digitalWrite(LED_GLOW_PIN, HIGH);
+  digitalWrite(ONBOARD_STATUS_PIN, HIGH);
+  delay(300);
+
+  Serial.println("==================================================");
+  Serial.println("  ✨ DIGICOMP ESP32-S3 RADIANT LIGHT GLOW SYSTEM  ");
+  Serial.println("==================================================");
+  Serial.println("Target: ESP32-S3 Dual-Core Xtensa LX7 @ 240MHz");
+  Serial.println("Glow Pin: GPIO 48 (WS2812/Status) + GPIO 2 (PWM Light)");
+  Serial.println("Mode: Smooth Breathing Light Glow Active (50 FPS)");
+  Serial.println("Serial Commands: 'ON', 'OFF', 'BREATHE', 'BRIGHT 200'");
+  Serial.println("==================================================");
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
+  unsigned long now = millis();
 
-  if (currentMillis - previousMillis >= INTERVAL_MS) {
-    previousMillis = currentMillis;
-    ledState = (ledState == LOW) ? HIGH : LOW;
-    digitalWrite(LED_PIN, ledState);
+  // 1. Process UART Serial commands from Web IDE
+  if (Serial.available() > 0) {
+    String cmd = Serial.readStringUntil('\\n');
+    cmd.trim();
+    cmd.toUpperCase();
 
-    Serial.print("LED State Changed: ");
-    Serial.println(ledState ? "HIGH" : "LOW");
+    if (cmd == "ON" || cmd == "GLOW") {
+      currentMode = "SOLID_ON";
+      analogWrite(LED_GLOW_PIN, 255);
+      digitalWrite(ONBOARD_STATUS_PIN, HIGH);
+      Serial.println("[GLOW ENGINE] Light set to: CONSTANT HIGH GLOW (100% Brightness)");
+    } else if (cmd == "OFF") {
+      currentMode = "OFF";
+      analogWrite(LED_GLOW_PIN, 0);
+      digitalWrite(ONBOARD_STATUS_PIN, LOW);
+      Serial.println("[GLOW ENGINE] Light set to: OFF");
+    } else if (cmd == "BREATHE") {
+      currentMode = "BREATHE";
+      Serial.println("[GLOW ENGINE] Light set to: SMOOTH BREATHING GLOW");
+    } else if (cmd.startsWith("BRIGHT ")) {
+      int val = cmd.substring(7).toInt();
+      val = constrain(val, 0, 255);
+      currentMode = "SOLID_CUSTOM";
+      analogWrite(LED_GLOW_PIN, val);
+      Serial.print("[GLOW ENGINE] Custom Brightness Level set to: ");
+      Serial.println(val);
+    }
   }
+
+  // 2. Smooth Breathing Light Glow Animation
+  if (currentMode == "BREATHE") {
+    if (now - lastGlowUpdate >= GLOW_INTERVAL_MS) {
+      lastGlowUpdate = now;
+
+      // Smooth sinusoidal breathing curve mapped with gamma correction
+      float factor = (sin(glowAngle) + 1.0) / 2.0; // 0.0 to 1.0
+      currentBrightness = (int)(pow(factor, 2.0) * 255.0);
+      if (currentBrightness < 5) currentBrightness = 5; // Keep warm ember glow
+
+      analogWrite(LED_GLOW_PIN, currentBrightness);
+      digitalWrite(ONBOARD_STATUS_PIN, factor > 0.4 ? HIGH : LOW);
+
+      glowAngle += GLOW_SPEED_STEP;
+      if (glowAngle >= 2.0 * PI) {
+        glowAngle -= 2.0 * PI;
+        Serial.print("[GLOW TELEMETRY] Breathing Pulse Cycle Complete | Peak Brightness: ");
+        Serial.print(currentBrightness);
+        Serial.println(" / 255");
+      }
+    }
+  } else if (currentMode == "SOLID_ON") {
+    analogWrite(LED_GLOW_PIN, 255);
+    digitalWrite(ONBOARD_STATUS_PIN, HIGH);
+  }
+
+  delay(5);
 }
 `,
-      'config.h': `#ifndef CONFIG_H
+      'config.h': `// Digicomp ESP32-S3 Hardware Light Glow Configuration
+#ifndef CONFIG_H
 #define CONFIG_H
 
-#define LED_PIN 13
-#define BAUD_RATE 9600
-#define INTERVAL_MS 1000
+#define BAUD_RATE 115200
+
+// Target Light Glow Pins:
+// GPIO 48: ESP32-S3 Onboard High-Radiance RGB/Status LED
+// GPIO 2:  Standard Status LED / PWM Channel
+#define LED_GLOW_PIN 48
+#define ONBOARD_STATUS_PIN 2
+
+// Animation refresh timing
+#define GLOW_INTERVAL_MS 20     // 50 FPS smooth refresh
+#define GLOW_SPEED_STEP 0.045   // Speed of breathing pulse
 
 #endif // CONFIG_H
+`,
+      'README.md': `# Digicomp ESP32-S3 Radiant Light Glow System
+
+This sketch makes the onboard and external LEDs on your **Digicomp ESP32-S3 Dev Board** glow with a smooth breathing radiance or a bright solid illumination.
+
+### Glow Modes:
+1. **Smooth Breathing Glow (Default)**: Uses 50 FPS sinusoidal PWM modulation with human-eye gamma correction ($x^{2.0}$) to create a natural, pulsating warm light glow.
+2. **Solid High-Radiance Glow**: Full 100% duty cycle illumination on **GPIO 48** and **GPIO 2**.
+
+### Interactive Serial Commands:
+- Type **\`ON\`** in the Serial Monitor to make light glow continuously at 100%.
+- Type **\`BREATHE\`** to switch back to smooth pulsing breathing glow.
+- Type **\`BRIGHT 180\`** to set a custom brightness from 0 to 255.
+- Type **\`OFF\`** to turn the light off.
+
+### External LED Wiring (Optional):
+- **Anode (+ long leg)** -> **GPIO 48** or **GPIO 2** via 220Ω resistor.
+- **Cathode (- short leg)** -> **GND**.
 `,
     },
   },
   {
-    id: 'ultrasonic',
-    name: 'HC-SR04 Ultrasonic Distance',
-    deviceId: 'arduino-uno',
-    description: 'Distance measurement demo matching DigiComp HC-SR04 Sensor (DC-HCSR04-01).',
+    id: 'esp32s3-rgb-neopixel',
+    name: 'ESP32-S3 Neopixel RGB LED',
+    deviceId: 'esp32-s3',
+    description: 'Onboard WS2812 Neopixel pulse demo on GPIO 48 matching docs.digicomp.app.',
     files: {
-      'main.cpp': `// DigiComp Hardware Lab - HC-SR04 Ultrasonic Sensor Demo
-// Matching DigiComp SKU: DC-HCSR04-01
+      'main.cpp': `// Digicomp Technologies - ESP32-S3 WS2812 Neopixel RGB LED
+// Target: Digicomp ESP32-S3 Dev Board (SKU: DC-ESP32S3-01)
+// Documentation: https://docs.digicomp.app/boards/esp32-s3/neopixel
 #include <Arduino.h>
 #include "config.h"
 
-void setup() {
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
-  pinMode(ALERT_LED_PIN, OUTPUT);
-  Serial.begin(BAUD_RATE);
-
-  Serial.println("=== DigiComp HC-SR04 Ultrasonic Distance Sensor ===");
-  Serial.println("Measuring range: 2cm to 400cm");
-}
-
-void loop() {
-  // Trigger ultrasonic sonic burst (10us pulse)
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
-
-  // Measure echo pulse duration
-  long duration = pulseIn(ECHO_PIN, HIGH, 30000); // 30ms timeout
-
-  // Speed of sound is 343 m/s => 0.0343 cm/us (round-trip, divide by 2)
-  float distanceCm = (duration * 0.0343) / 2.0;
-
-  Serial.print("Distance: ");
-  Serial.print(distanceCm, 1);
-  Serial.println(" cm");
-
-  // Alert if an obstacle is closer than 15 cm
-  if (distanceCm > 0 && distanceCm < OBSTACLE_THRESHOLD_CM) {
-    digitalWrite(ALERT_LED_PIN, HIGH);
-    Serial.println(">>> WARNING: Obstacle detected within threshold!");
-  } else {
-    digitalWrite(ALERT_LED_PIN, LOW);
-  }
-
-  delay(SAMPLE_DELAY_MS);
-}
-`,
-      'config.h': `#ifndef CONFIG_H
-#define CONFIG_H
-
-#define TRIG_PIN 9
-#define ECHO_PIN 10
-#define ALERT_LED_PIN 13
-#define BAUD_RATE 9600
-#define OBSTACLE_THRESHOLD_CM 15.0
-#define SAMPLE_DELAY_MS 500
-
-#endif // CONFIG_H
-`,
-    },
-  },
-  {
-    id: 'ldr-sensor',
-    name: 'LDR Light Sensor & Auto Switch',
-    deviceId: 'arduino-nano',
-    description: 'Automatic nightlight / threshold detector matching DigiComp LDR Sensor (DC-LDR-01).',
-    files: {
-      'main.cpp': `// DigiComp Hardware Lab - LDR Light Sensor Automation
-// Matching DigiComp SKU: DC-LDR-01
-#include <Arduino.h>
-#include "config.h"
+int hue = 0;
 
 void setup() {
-  pinMode(RELAY_CONTROL_PIN, OUTPUT);
   Serial.begin(BAUD_RATE);
-  Serial.println("=== DigiComp LDR Light Automation Controller ===");
-}
-
-void loop() {
-  int rawLight = analogRead(LDR_PIN);
-  float voltage = (rawLight * 5.0) / 1023.0;
-
-  Serial.print("LDR Raw: ");
-  Serial.print(rawLight);
-  Serial.print(" | Sensor Voltage: ");
-  Serial.print(voltage, 2);
-  Serial.println(" V");
-
-  // Activate relay when ambient darkness falls below threshold
-  if (rawLight < DARKNESS_THRESHOLD) {
-    digitalWrite(RELAY_CONTROL_PIN, HIGH);
-    Serial.println("[Automation] Darkness detected -> Relay TRIGGERED (Light ON)");
-  } else {
-    digitalWrite(RELAY_CONTROL_PIN, LOW);
-  }
-
-  delay(600);
-}
-`,
-      'config.h': `#ifndef CONFIG_H
-#define CONFIG_H
-
-#define LDR_PIN A0
-#define RELAY_CONTROL_PIN 13
-#define BAUD_RATE 9600
-#define DARKNESS_THRESHOLD 400
-
-#endif // CONFIG_H
-`,
-    },
-  },
-  {
-    id: 'esp32-telemetry',
-    name: 'ESP32 Dual-Core Telemetry',
-    deviceId: 'esp32-devkit',
-    description: 'High-speed sensor telemetry on dual-core 240MHz ESP32 (DC-ESP32-01).',
-    files: {
-      'main.cpp': `// DigiComp Hardware Lab - ESP32 DevKit V1 Telemetry Engine
-// Target: ESP32 Dual Core Xtensa 240MHz (SKU: DC-ESP32-01)
-#include <Arduino.h>
-#include "config.h"
-
-unsigned long cycleCount = 0;
-
-void setup() {
-  pinMode(STATUS_LED_PIN, OUTPUT);
-  Serial.begin(BAUD_RATE);
+  pinMode(NEOPIXEL_PIN, OUTPUT);
   delay(500);
 
-  Serial.println("================================================");
-  Serial.println("  DigiComp ESP32 DevKit V1 High-Speed Telemetry ");
-  Serial.println("================================================");
-  Serial.println("CPU Architecture: Dual-Core Xtensa LX6 @ 240MHz");
-  Serial.println("Flash Memory: 4MB SPI Flash | SRAM: 520KB");
-  Serial.println("Communication: 802.11 b/g/n Wi-Fi + BLE 4.2");
+  Serial.println("==================================================");
+  Serial.println("  ⚡ DIGICOMP ESP32-S3 NEOPIXEL RGB CONTROLLER    ");
+  Serial.println("==================================================");
+  Serial.println("MCU: Xtensa LX7 Dual-Core 240MHz | 8MB PSRAM");
+  Serial.println("RGB LED GPIO: 48 | Color Sequence: Saffron -> Cyan -> Magenta");
 }
 
 void loop() {
-  cycleCount++;
+  // Saffron Pulse
+  Serial.println("[ESP32-S3] Status RGB: #FF6D33 Saffron Pulse");
+  digitalWrite(NEOPIXEL_PIN, HIGH);
+  delay(PULSE_DELAY_MS);
 
-  digitalWrite(STATUS_LED_PIN, HIGH);
-  Serial.print("[ESP32 Core 1] Heartbeat #");
-  Serial.print(cycleCount);
-  Serial.println(" -> Telemetry Signal: 3.3V ACTIVE");
-  delay(CYCLE_MS / 2);
-
-  digitalWrite(STATUS_LED_PIN, LOW);
-  Serial.println("[ESP32 Core 1] Power Standby -> Telemetry Signal: LOW (0V)");
-  delay(CYCLE_MS / 2);
+  digitalWrite(NEOPIXEL_PIN, LOW);
+  delay(PULSE_DELAY_MS);
 }
 `,
       'config.h': `#ifndef CONFIG_H
 #define CONFIG_H
 
-#define STATUS_LED_PIN 2
+#define NEOPIXEL_PIN 48
 #define BAUD_RATE 115200
-#define CYCLE_MS 800
+#define PULSE_DELAY_MS 600
 
 #endif // CONFIG_H
 `,
+    },
+  },
+  {
+    id: 'esp32s3-ldr-servo',
+    name: 'ESP32-S3 LDR Light & PWM',
+    deviceId: 'esp32-s3',
+    description: 'Light sensor ADC + 500Hz LED PWM + 50Hz Servo from digicomp-app/temp.',
+    files: {
+      'main.cpp': `// Digicomp Technologies - LDR Sensor + Dynamic PWM LED
+// Source: digicomp-app/temp/main.py (ESP32-S3 MicroPython / C++ port)
+#include <Arduino.h>
+#include "config.h"
+
+void setup() {
+  Serial.begin(BAUD_RATE);
+  pinMode(PWM_LED_PIN, OUTPUT);
+  pinMode(LDR_ADC_PIN, INPUT);
+
+  Serial.println("==================================================");
+  Serial.println("  Digicomp ESP32-S3 Light Sensor & PWM System     ");
+  Serial.println("==================================================");
+}
+
+void loop() {
+  int rawLdr = analogRead(LDR_ADC_PIN); // 0 (Bright) to 4095 (Dark)
+  float darknessRatio = (float)rawLdr / 4095.0f;
+  int pwmDuty = (int)(darknessRatio * 255);
+
+  analogWrite(PWM_LED_PIN, pwmDuty);
+
+  Serial.print("[LDR Telemetry] Raw ADC: ");
+  Serial.print(rawLdr);
+  Serial.print(" | Darkness: ");
+  Serial.print(darknessRatio * 100.0f, 1);
+  Serial.print("% | PWM Duty: ");
+  Serial.println(pwmDuty);
+
+  delay(400);
+}
+`,
+      'config.h': `#ifndef CONFIG_H
+#define CONFIG_H
+
+#define LDR_ADC_PIN 4      // ADC1_CH3 on Digicomp ESP32-S3
+#define PWM_LED_PIN 2      // Onboard status LED
+#define SERVO_PIN   6      // 50Hz Servo PWM
+#define BAUD_RATE   115200
+
+#endif // CONFIG_H
+`,
+    },
+  },
+  {
+    id: 'bms16s-balancer',
+    name: 'Digicomp 16S Smart BMS Monitor',
+    deviceId: 'digicomp-bms16s',
+    description: 'Battery pack active cell balancing and telemetry from digicomp_bms.h.',
+    files: {
+      'main.cpp': `// Digicomp Technologies - 16S Battery Management System (BMS)
+// Production Firmware Interface: digicomp_bms.h
+#include <Arduino.h>
+#include "config.h"
+
+float cellVoltages[16];
+
+void setup() {
+  Serial.begin(BAUD_RATE);
+  Serial.println("==================================================");
+  Serial.println("  ⚡ DIGICOMP 16S SMART BMS TELEMETRY ENGINE       ");
+  Serial.println("==================================================");
+  Serial.println("Scalable Range: 1S to 16S Li-Ion / LiFePO4");
+  Serial.println("Active Cell Balancer: ONLINE");
+  Serial.println("CAN Bus & Bluetooth BLE: BROADCASTING");
+}
+
+void loop() {
+  float packVoltage = 0.0f;
+  for (int i = 0; i < 16; i++) {
+    cellVoltages[i] = 3.65f + ((float)(random(-15, 15)) / 1000.0f);
+    packVoltage += cellVoltages[i];
+  }
+
+  Serial.print("[BMS 16S] Pack: ");
+  Serial.print(packVoltage, 2);
+  Serial.print(" V | Cell 1: ");
+  Serial.print(cellVoltages[0], 3);
+  Serial.print(" V | Cell 16: ");
+  Serial.print(cellVoltages[15], 3);
+  Serial.println(" V | Balancing: ACTIVE (Delta < 15mV)");
+
+  delay(1000);
+}
+`,
+      'config.h': `#ifndef CONFIG_H
+#define CONFIG_H
+
+#define CELL_COUNT 16
+#define OVP_THRESHOLD 4.25f
+#define UVP_THRESHOLD 2.80f
+#define BAUD_RATE 115200
+
+#endif // CONFIG_H
+`,
+    },
+  },
+  {
+    id: 'rp2350-heartbeat',
+    name: 'RP2350 Dual-Core Heartbeat',
+    deviceId: 'rp2350',
+    description: 'ARM Cortex-M33 + Hazard3 RISC-V dual architecture pulse.',
+    files: {
+      'main.cpp': `// Digicomp RP2350 Dual-Core Telemetry
+#include <Arduino.h>
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(25, OUTPUT);
+  Serial.println("Digicomp RP2350: Dual-Core 150MHz Engine Ready.");
+}
+
+void loop() {
+  digitalWrite(25, HIGH);
+  Serial.println("[RP2350 Core 0] Status: ACTIVE | Saffron Pulse");
+  delay(500);
+  digitalWrite(25, LOW);
+  delay(500);
+}
+`,
+      'config.h': `#ifndef CONFIG_H\n#define CONFIG_H\n#define LED_PIN 25\n#endif\n`,
+    },
+  },
+  {
+    id: 'arduino-uno-blink',
+    name: 'Arduino Uno R3 Basic Blink',
+    deviceId: 'arduino-uno',
+    description: 'Classic ATmega328P 16MHz blink demo.',
+    files: {
+      'main.cpp': `// Digicomp Hardware Lab - Arduino Uno R3 Basic Blink\n#include <Arduino.h>\nvoid setup() { pinMode(13, OUTPUT); Serial.begin(9600); }\nvoid loop() { digitalWrite(13, HIGH); delay(1000); digitalWrite(13, LOW); delay(1000); }\n`,
+      'config.h': `#ifndef CONFIG_H\n#define CONFIG_H\n#define LED_PIN 13\n#endif\n`,
     },
   },
 ];
@@ -280,7 +398,7 @@ void loop() {
 export default function HardwareLabPage() {
   // Device & Project State
   const [devices, setDevices] = useState<HardwareDevice[]>(HARDWARE_DEVICES);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('arduino-uno');
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('esp32-s3');
   const [files, setFiles] = useState<Record<string, string>>(HARDWARE_DEVICES[0].defaultFiles);
   const [activeFileName, setActiveFileName] = useState<string>('main.cpp');
   const [isModified, setIsModified] = useState<boolean>(false);
@@ -319,7 +437,7 @@ export default function HardwareLabPage() {
   const [serialSupported, setSerialSupported] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [connectedPortName, setConnectedPortName] = useState<string>('');
-  const [selectedBaud, setSelectedBaud] = useState<number>(9600);
+  const [selectedBaud, setSelectedBaud] = useState<number>(HARDWARE_DEVICES[0]?.defaultBaud || 115200);
   const [serialLogs, setSerialLogs] = useState<Array<{ text: string; time: string; type: 'in' | 'out' | 'sys' }>>([]);
   const [serialInput, setSerialInput] = useState<string>('');
   const [autoScrollSerial, setAutoScrollSerial] = useState<boolean>(true);
@@ -328,6 +446,11 @@ export default function HardwareLabPage() {
   // Modals & Dialogs
   const [showShortcutsModal, setShowShortcutsModal] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // Hardware Auto-Detection Engine State
+  const [isDetecting, setIsDetecting] = useState<boolean>(false);
+  const [detectedChipInfo, setDetectedChipInfo] = useState<any>(null);
+  const [lastDetectedSignature, setLastDetectedSignature] = useState<string>('');
 
   // References
   const serialPortRef = useRef<any>(null);
@@ -345,6 +468,136 @@ export default function HardwareLabPage() {
       setToastMessage((cur) => (cur?.text === text ? null : cur));
     }, 3500);
   }, []);
+
+  // Hardware Auto-Detection Handler
+  const checkHardwareAutoDetect = useCallback(
+    async (isManualTrigger = false, simulateId?: string) => {
+      try {
+        setIsDetecting(true);
+        const query = simulateId ? `?simulate=${simulateId}` : '';
+        const res = await fetch(`/api/hardware/detect${query}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.success && data.detected && data.primary_device) {
+          const dev = data.primary_device;
+          const chip = dev.chip;
+          const sig = `${dev.port}_${chip?.chip_id || dev.vid || 'chip'}`;
+
+          // Avoid resetting if already on this port/chip signature unless manually requested
+          if (sig !== lastDetectedSignature || isManualTrigger) {
+            setLastDetectedSignature(sig);
+            setDetectedChipInfo(dev);
+
+            // Match catalog device
+            const matchedDev =
+              devices.find((d) => d.id === chip?.chip_id) ||
+              devices.find((d) => chip?.chip_name && d.name.toLowerCase().includes(chip.chip_name.toLowerCase())) ||
+              devices.find((d) => d.id === 'esp32-s3') ||
+              devices[0];
+
+            if (matchedDev && matchedDev.id !== selectedDeviceId) {
+              setSelectedDeviceId(matchedDev.id);
+              setSelectedBaud(matchedDev.defaultBaud);
+              setFiles(matchedDev.defaultFiles);
+              setActiveFileName('main.cpp');
+              setIsModified(false);
+              setProblems([]);
+              setCompilationResult(null);
+            }
+
+            setConnectionStatus('connected');
+            const portName = `${dev.port} (${chip?.chip_name || 'USB Chip'})`;
+            setConnectedPortName(portName);
+
+            showToast(`⚡ Auto-detected ${chip?.chip_name || 'Hardware'} on ${dev.port}`, 'success');
+
+            setOutputLogs((prev) => [
+              ...prev,
+              `[${new Date().toLocaleTimeString()}] ⚡ HARDWARE AUTO-DETECTED: ${chip?.board_name || dev.description}`,
+              `[${new Date().toLocaleTimeString()}] Port: ${dev.port} | Silicon: ${chip?.chip_name || 'Generic'} | Logic: ${chip?.operating_voltage || '3.3V'}`,
+              `[${new Date().toLocaleTimeString()}] Board profile loaded: ${matchedDev?.name}. Ready to build & program!`,
+            ]);
+
+            setSerialLogs((prev) => [
+              ...prev,
+              {
+                text: `--- Auto-detected hardware device: ${chip?.board_name || 'Board'} on ${dev.port} ---`,
+                time: new Date().toLocaleTimeString(),
+                type: 'sys',
+              },
+            ]);
+          }
+        } else {
+          // If a physical board was previously auto-detected and is now no longer present:
+          if (lastDetectedSignature && !lastDetectedSignature.includes('Virtual') && !serialPortRef.current) {
+            setLastDetectedSignature('');
+            setDetectedChipInfo(null);
+            setConnectionStatus('disconnected');
+            setConnectedPortName('');
+            setOutputLogs((prev) => [
+              ...prev,
+              `[${new Date().toLocaleTimeString()}] 🔌 Hardware disconnected: USB device was unplugged.`,
+            ]);
+            setSerialLogs((prev) => [
+              ...prev,
+              { text: '--- Hardware device disconnected from USB port ---', time: new Date().toLocaleTimeString(), type: 'sys' },
+            ]);
+            showToast('USB hardware device disconnected', 'info');
+          } else if (isManualTrigger) {
+            showToast('Scan complete: No USB microcontroller detected. Plug in your board via USB.', 'info');
+          }
+        }
+      } catch (err) {
+        if (isManualTrigger) {
+          showToast('Detector scanner: Ensure backend is running.', 'error');
+        }
+      } finally {
+        setIsDetecting(false);
+      }
+    },
+    [devices, selectedDeviceId, lastDetectedSignature, showToast]
+  );
+
+  // Background Auto-Detection: Polls hardware detector every 3.5 seconds
+  useEffect(() => {
+    checkHardwareAutoDetect(false);
+    const interval = setInterval(() => {
+      checkHardwareAutoDetect(false);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [checkHardwareAutoDetect]);
+
+  // Native Web Serial Plug/Unplug Event Listeners
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serial' in navigator)) return;
+
+    const nav = navigator as any;
+    const handleConnectEvent = () => {
+      showToast('USB hardware device plugged in. Auto-detecting...', 'info');
+      checkHardwareAutoDetect(true);
+    };
+
+    const handleDisconnectEvent = () => {
+      showToast('USB hardware device disconnected.', 'info');
+      setConnectionStatus('disconnected');
+      setConnectedPortName('');
+      setDetectedChipInfo(null);
+      setLastDetectedSignature('');
+      setSerialLogs((prev) => [
+        ...prev,
+        { text: '--- Hardware device disconnected from USB port ---', time: new Date().toLocaleTimeString(), type: 'sys' },
+      ]);
+    };
+
+    nav.serial.addEventListener('connect', handleConnectEvent);
+    nav.serial.addEventListener('disconnect', handleDisconnectEvent);
+
+    return () => {
+      nav.serial.removeEventListener('connect', handleConnectEvent);
+      nav.serial.removeEventListener('disconnect', handleDisconnectEvent);
+    };
+  }, [checkHardwareAutoDetect, showToast]);
 
   // Check Web Serial support on mount
   useEffect(() => {
@@ -404,6 +657,12 @@ export default function HardwareLabPage() {
 
   // Load project preset example
   const handleLoadPreset = (presetId: string) => {
+    if (presetId.startsWith('simulate-')) {
+      const chipId = presetId.replace('simulate-', '');
+      checkHardwareAutoDetect(true, chipId);
+      return;
+    }
+
     const preset = EXAMPLE_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
 
@@ -447,24 +706,24 @@ export default function HardwareLabPage() {
       inherit: true,
       rules: [
         { token: 'comment', foreground: '64748b', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '38bdf8', fontStyle: 'bold' },
-        { token: 'type', foreground: '7dd3fc' },
+        { token: 'keyword', foreground: 'FF7E47', fontStyle: 'bold' },
+        { token: 'type', foreground: '60a5fa' },
         { token: 'identifier', foreground: 'f8fafc' },
         { token: 'string', foreground: '34d399' },
         { token: 'number', foreground: 'fbbf24' },
         { token: 'delimiter', foreground: '94a3b8' },
       ],
       colors: {
-        'editor.background': '#0f172a',
+        'editor.background': '#0b0f17',
         'editor.foreground': '#f8fafc',
         'editorLineNumber.foreground': '#475569',
-        'editorLineNumber.activeForeground': '#38bdf8',
-        'editor.lineHighlightBackground': '#1e293b66',
-        'editor.selectionBackground': '#0369a14d',
-        'editorCursor.foreground': '#38bdf8',
+        'editorLineNumber.activeForeground': '#FF6D33',
+        'editor.lineHighlightBackground': '#161b2288',
+        'editor.selectionBackground': '#FF6D3333',
+        'editorCursor.foreground': '#FF6D33',
         'editorWhitespace.foreground': '#334155',
-        'editorWidget.background': '#1e293b',
-        'editorWidget.border': '#334155',
+        'editorWidget.background': '#161b22',
+        'editorWidget.border': '#30363d',
       },
     });
 
@@ -566,6 +825,30 @@ export default function HardwareLabPage() {
           `[${new Date().toLocaleTimeString()}] Status: ${data.message} (${data.buildTimeMs} ms)`,
         ]);
         showToast(action === 'run' ? 'Simulation finished successfully' : 'Compilation successful', 'success');
+
+        // If action is 'run', also extract serial simulation output and pipe to Serial Monitor
+        if (action === 'run' && data.stdout.includes('--- Simulation Execution Output')) {
+          const simOutput = data.stdout.split('--- Simulation Execution Output (3 cycles) ---\n')[1];
+          if (simOutput) {
+            const rawLines = simOutput.split('\n');
+            const newSerialLogs = rawLines
+              .map((l) => l.trim())
+              .filter((l) => l.length > 0)
+              .map((l) => ({
+                text: l,
+                time: new Date().toLocaleTimeString(),
+                type: 'in' as const,
+              }));
+
+            setSerialLogs((prev) => [
+              ...prev,
+              { text: `--- [SIMULATION] Launched firmware on ${selectedDevice.name} ---`, time: new Date().toLocaleTimeString(), type: 'sys' },
+              ...newSerialLogs,
+              { text: `--- [SIMULATION] Execution cycle completed ---`, time: new Date().toLocaleTimeString(), type: 'sys' },
+            ]);
+            setBottomTab('serial');
+          }
+        }
       } else {
         setOutputLogs((prev) => [
           ...prev,
@@ -760,12 +1043,27 @@ export default function HardwareLabPage() {
     if (!textToSend) return;
 
     if (connectionStatus !== 'connected' || !serialPortRef.current?.writable) {
-      // Provide simulated echo when testing without physical hardware plugged in
+      const lower = textToSend.toLowerCase();
+      let response = `[${selectedDevice.name}] Received: "${textToSend}" (ACK)`;
+      if (lower === 'ping') {
+        response = `[${selectedDevice.name}] PONG! Core 0 & Core 1 active @ ${selectedDevice.clockSpeed}`;
+      } else if (lower === 'status') {
+        response = `[${selectedDevice.name}] Status: ACTIVE | MCU: ${selectedDevice.mcu} | Logic: ${selectedDevice.operatingVoltage} | Baud: ${selectedBaud}`;
+      } else if (lower === 'help') {
+        response = `[${selectedDevice.name}] Commands: PING, STATUS, HELP, RESET, READ_ADC, PIN_MAP`;
+      } else if (lower === 'reset') {
+        response = `[${selectedDevice.name}] System soft-reset triggered. Bootloader v2.4 ready.`;
+      } else if (lower === 'read_adc' || lower === 'adc') {
+        response = `[${selectedDevice.name}] ADC Channel 0: 2480 (${((2480 / 4095.0) * 3.3).toFixed(2)}V)`;
+      } else if (lower === 'pin_map') {
+        response = `[${selectedDevice.name}] Pins: ${selectedDevice.pinout.slice(0, 6).map((p) => p.pin).join(', ')}...`;
+      }
+
       setSerialLogs((prev) => [
         ...prev,
         { text: `> ${textToSend}`, time: new Date().toLocaleTimeString(), type: 'out' },
         {
-          text: `[Simulated / No Device] Echo: "${textToSend}" received by ${selectedDevice.name}`,
+          text: response,
           time: new Date().toLocaleTimeString(),
           type: 'in',
         },
@@ -840,12 +1138,12 @@ export default function HardwareLabPage() {
               ? 'bg-emerald-950/90 text-emerald-200 border-emerald-700/60 shadow-emerald-950/50'
               : toastMessage.type === 'error'
               ? 'bg-rose-950/90 text-rose-200 border-rose-700/60 shadow-rose-950/50'
-              : 'bg-slate-900/95 text-sky-200 border-slate-700/60 shadow-slate-950/50'
+              : 'bg-slate-900/95 text-slate-200 border-[#FF6D33]/40 shadow-slate-950/50'
           }`}
         >
           {toastMessage.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
           {toastMessage.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400" />}
-          {toastMessage.type === 'info' && <Sparkles className="w-4 h-4 text-sky-400" />}
+          {toastMessage.type === 'info' && <Sparkles className="w-4 h-4 text-[#FF6D33]" />}
           <span>{toastMessage.text}</span>
         </div>
       )}
@@ -856,7 +1154,7 @@ export default function HardwareLabPage() {
           <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <Keyboard className="w-5 h-5 text-sky-400" />
+                <Keyboard className="w-5 h-5 text-[#FF6D33]" />
                 <h3 className="text-sm font-bold text-white">Hardware Lab Shortcuts</h3>
               </div>
               <button
@@ -870,31 +1168,31 @@ export default function HardwareLabPage() {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between p-2 rounded bg-slate-800/60">
                 <span className="text-slate-300">Compile Firmware</span>
-                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-sky-300">
+                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-[#FF6D33]">
                   Ctrl + Enter
                 </kbd>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-slate-800/60">
                 <span className="text-slate-300">Run Simulation</span>
-                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-sky-300">
+                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-[#FF6D33]">
                   Ctrl + Shift + Enter
                 </kbd>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-slate-800/60">
                 <span className="text-slate-300">Save Workspace</span>
-                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-sky-300">
+                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-[#FF6D33]">
                   Ctrl + S
                 </kbd>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-slate-800/60">
                 <span className="text-slate-300">Format Code</span>
-                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-sky-300">
+                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-[#FF6D33]">
                   Shift + Alt + F
                 </kbd>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-slate-800/60">
                 <span className="text-slate-300">Toggle Command Palette</span>
-                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-sky-300">
+                <kbd className="px-2 py-1 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-[#FF6D33]">
                   F1
                 </kbd>
               </div>
@@ -903,7 +1201,7 @@ export default function HardwareLabPage() {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setShowShortcutsModal(false)}
-                className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded text-xs font-semibold"
+                className="px-4 py-1.5 bg-gradient-to-r from-[#FF6D33] to-[#E3470E] hover:from-[#ff7e47] hover:to-[#eb531b] text-white rounded text-xs font-semibold"
               >
                 Got It
               </button>
@@ -912,104 +1210,50 @@ export default function HardwareLabPage() {
         </div>
       )}
 
-      {/* TOP DEDICATED IDE NAVIGATION BAR */}
-      <header className="h-12 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 flex items-center justify-between gap-3 shrink-0 z-20 shadow-lg">
-        {/* Left: Store Return Link + Hardware Lab Brand + Target Board Selector + Presets */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          {/* Back to DigiComp Store */}
+      {/* TIER 1: SYSTEM TITLEBAR & CONNECTION (Height 40px, z-20) */}
+      <header className="h-10 bg-[#0A0D14] border-b border-[#1E2530] px-3 flex items-center justify-between gap-3 shrink-0 z-20 select-none shadow-xs">
+        {/* Left: Store Return Link + Hardware Lab Brand */}
+        <div className="flex items-center gap-2.5 shrink-0">
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-medium transition-all group shrink-0 shadow-xs"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800/80 hover:bg-[#FF6D33]/15 text-slate-300 hover:text-white border border-slate-700/80 hover:border-[#FF6D33]/40 text-xs font-medium transition-all group shrink-0"
             title="Return to DigiComp Store"
           >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform text-sky-400" />
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform text-[#FF6D33]" />
+            <img src="/images/digicomp/logo.svg" alt="DigiComp" className="w-4 h-4 object-contain" />
             <span className="font-bold text-white tracking-tight">DigiComp</span>
-            <span className="text-[10px] text-sky-400 font-mono hidden sm:inline">Store</span>
+            <span className="text-[10px] text-[#FF6D33] font-mono">Store</span>
           </Link>
 
-          <div className="h-5 w-px bg-slate-800 shrink-0" />
+          <div className="h-4 w-px bg-slate-800 shrink-0" />
 
           {/* Hardware Lab Badge */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded bg-gradient-to-br from-sky-500/20 to-indigo-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 shadow-xs">
-              <Cpu className="w-4 h-4 text-sky-400" />
-            </div>
-            <div className="hidden md:block">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>Hardware Lab</span>
-                <span className="px-1.5 py-0.2 bg-sky-500/20 text-sky-300 text-[9px] rounded font-mono font-semibold border border-sky-500/30">
-                  IDE v2.0
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="h-5 w-px bg-slate-800 shrink-0 hidden md:block" />
-
-          {/* Target Microcontroller Selector */}
-          <div className="relative flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-400 font-medium hidden lg:inline">Board:</span>
-            <div className="relative">
-              <select
-                value={selectedDeviceId}
-                onChange={(e) => handleDeviceChange(e.target.value)}
-                className="appearance-none bg-slate-850 hover:bg-slate-800 text-sky-200 text-xs font-semibold pl-2.5 pr-8 py-1.5 rounded border border-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer transition-colors shadow-xs"
-                title="Select target microcontroller development board"
-              >
-                {devices.map((dev) => (
-                  <option key={dev.id} value={dev.id} className="bg-slate-900 text-white py-1">
-                    {dev.name} ({dev.operatingVoltage})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Example Project Presets */}
-          <div className="hidden xl:flex items-center gap-1.5">
-            <div className="relative">
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleLoadPreset(e.target.value);
-                    e.target.value = '';
-                  }
-                }}
-                defaultValue=""
-                className="appearance-none bg-slate-850 hover:bg-slate-800 text-slate-300 text-xs font-medium pl-2.5 pr-7 py-1.5 rounded border border-slate-700/80 focus:outline-none cursor-pointer transition-colors"
-                title="Load standard hardware project presets"
-              >
-                <option value="" disabled className="bg-slate-900 text-slate-400">
-                  Load Preset...
-                </option>
-                {EXAMPLE_PRESETS.map((preset) => (
-                  <option key={preset.id} value={preset.id} className="bg-slate-900 text-white py-1">
-                    {preset.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
-            </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Cpu className="w-4 h-4 text-[#FF6D33]" />
+            <span className="text-xs font-bold text-white tracking-tight">Hardware Lab</span>
+            <span className="px-1.5 py-0.2 bg-[#FF6D33]/15 text-[#FF6D33] text-[9px] rounded font-mono font-semibold border border-[#FF6D33]/30">
+              v2.0
+            </span>
           </div>
         </div>
 
-        {/* Center: File Breadcrumb & Connection Status */}
-        <div className="hidden lg:flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-slate-950/70 border border-slate-800 text-xs font-mono text-slate-400">
-            <span className="text-slate-500">{selectedDevice.id}</span>
+        {/* Center: File Breadcrumb & Hardware Connection Status (Separated, Center-Aligned, Clean) */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* File Breadcrumb */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#0D1117] border border-slate-800 text-[11px] font-mono text-slate-400">
+            <span className="text-slate-500 font-semibold">{selectedDevice.id}</span>
             <span className="text-slate-600">/</span>
-            <span className="text-sky-300 font-semibold">{activeFileName}</span>
-            {isModified && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse ml-1" title="Unsaved changes" />}
+            <span className="text-[#FF6D33] font-semibold">{activeFileName}</span>
+            {isModified && <span className="w-1.5 h-1.5 rounded-full bg-[#FF6D33] animate-pulse ml-0.5" title="Unsaved changes" />}
           </div>
 
-          {/* Hardware Connection Indicator */}
+          {/* Connection Status Pill with Port & Silicon details */}
           <div
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
+            className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
               connectionStatus === 'connected'
-                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40 shadow-xs shadow-emerald-950/40'
                 : connectionStatus === 'connecting'
-                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/40'
                 : 'bg-slate-800/80 text-slate-400 border-slate-700/60'
             }`}
           >
@@ -1022,21 +1266,86 @@ export default function HardwareLabPage() {
                   : 'bg-slate-500'
               }`}
             />
-            <span className="capitalize">{connectionStatus}</span>
+            <span className="font-semibold capitalize">{connectionStatus}</span>
             {connectionStatus === 'connected' && connectedPortName && (
-              <span className="font-mono text-[10px] text-slate-400">({connectedPortName})</span>
+              <span className="font-mono text-[10px] text-slate-300">({connectedPortName})</span>
             )}
           </div>
+
+          {detectedChipInfo?.chip && (
+            <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded bg-[#FF6D33]/15 text-[#FF6D33] text-[10px] font-mono font-bold border border-[#FF6D33]/30">
+              <Zap className="w-3 h-3 text-[#FF6D33]" />
+              <span>{detectedChipInfo.chip.chip_name}</span>
+            </div>
+          )}
         </div>
 
-        {/* Right: Actions (Run, Compile, Save, Connect Hardware, Shortcuts) */}
+        {/* Right: Hardware Port Connectors + Docs + Shortcuts */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Run / Simulate Button */}
+          {/* Auto-Detect Scanner Button */}
+          <button
+            onClick={() => checkHardwareAutoDetect(true)}
+            disabled={isDetecting}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-all cursor-pointer ${
+              detectedChipInfo
+                ? 'bg-[#FF6D33]/20 text-[#FF6D33] border-[#FF6D33]'
+                : 'bg-slate-800/90 hover:bg-[#FF6D33]/15 text-slate-300 hover:text-[#FF6D33] border-slate-700 hover:border-[#FF6D33]/40'
+            }`}
+            title="Scan USB bus and auto-detect microcontrollers"
+          >
+            <Radio className={`w-3.5 h-3.5 ${isDetecting ? 'animate-spin text-[#FF6D33]' : 'text-[#FF6D33]'}`} />
+            <span>{isDetecting ? 'Scanning...' : detectedChipInfo ? 'Chip Detected' : 'Auto-Detect'}</span>
+          </button>
+
+          {/* Web Serial Connect / Disconnect */}
+          <button
+            onClick={handleConnectDevice}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border transition-all cursor-pointer ${
+              connectionStatus === 'connected'
+                ? 'bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border-rose-700 shadow-xs'
+                : 'bg-slate-800/90 hover:bg-[#FF6D33]/15 text-[#FF6D33] border-[#FF6D33]/40'
+            }`}
+            title="Connect / Disconnect USB Web Serial port"
+          >
+            <Usb className="w-3.5 h-3.5" />
+            <span>{connectionStatus === 'connected' ? 'Disconnect' : 'Connect Device'}</span>
+          </button>
+
+          <div className="h-4 w-px bg-slate-800 shrink-0" />
+
+          {/* Docs */}
+          <a
+            href="https://docs.digicomp.app"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-750 text-slate-300 hover:text-[#FF6D33] border border-slate-700 text-xs font-medium transition-colors"
+            title="Open DigiComp Official Documentation"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-[#FF6D33]" />
+            <span className="hidden sm:inline">Docs</span>
+          </a>
+
+          {/* Shortcuts Modal Trigger */}
+          <button
+            onClick={() => setShowShortcutsModal(true)}
+            className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors cursor-pointer"
+            title="Keyboard Shortcuts (F1)"
+          >
+            <Keyboard className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* TIER 2: PRIMARY ACTION RIBBON & TOOLBAR (Height 44px, z-10) */}
+      <div className="h-11 bg-[#0D1117] border-b border-[#21262D] px-3 flex items-center justify-between gap-3 shrink-0 z-10 select-none shadow-xs">
+        {/* Left: Actions (Run, Compile, Save) + Selectors (Board, Presets) */}
+        <div className="flex items-center gap-2 min-w-0">
+          {/* RUN BUTTON: Prominent Emerald Gradient */}
           <button
             onClick={() => handleCompile('run')}
             disabled={isCompiling}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-98 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-emerald-950/40 group cursor-pointer"
-            title="Verify sketch and run test simulation (Ctrl+Shift+Enter)"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-98 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm shadow-emerald-950/50 group cursor-pointer shrink-0"
+            title="Build firmware & stream simulation to Serial Monitor (Ctrl+Shift+Enter)"
           >
             {isCompiling ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1046,55 +1355,118 @@ export default function HardwareLabPage() {
             <span>Run</span>
           </button>
 
-          {/* Compile Button */}
+          {/* COMPILE BUTTON: DigiComp Saffron Gradient */}
           <button
             onClick={() => handleCompile('compile')}
             disabled={isCompiling}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 active:scale-98 disabled:opacity-50 text-white text-xs font-semibold transition-all shadow-md shadow-sky-950/40 group cursor-pointer"
-            title="Compile firmware sketch & check memory (Ctrl+Enter)"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-gradient-to-r from-[#FF6D33] to-[#E3470E] hover:from-[#ff7e47] hover:to-[#eb531b] active:scale-98 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm shadow-orange-950/50 group cursor-pointer shrink-0"
+            title="Compile sketch and check Flash/SRAM allocation (Ctrl+Enter)"
           >
             <Hammer className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
-            <span className="hidden sm:inline">Compile</span>
+            <span>Compile</span>
           </button>
 
-          {/* Save Button */}
+          {/* SAVE BUTTON */}
           <button
             onClick={handleSave}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-750 active:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-750 active:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors cursor-pointer shrink-0"
             title="Save workspace (Ctrl+S)"
           >
             <Save className="w-3.5 h-3.5 text-slate-400" />
-            <span className="hidden md:inline">Save</span>
+            <span>Save</span>
           </button>
 
-          {/* Connect Device via Web Serial */}
-          <button
-            onClick={handleConnectDevice}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer ${
-              connectionStatus === 'connected'
-                ? 'bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border-rose-700 shadow-rose-950/40'
-                : 'bg-slate-800 hover:bg-slate-750 text-sky-400 border-sky-500/40 shadow-sky-950/20'
-            }`}
-            title={
-              connectionStatus === 'connected'
-                ? 'Disconnect USB hardware port'
-                : 'Connect to physical Arduino / ESP32 board over Web Serial USB'
-            }
-          >
-            <Usb className="w-3.5 h-3.5" />
-            <span>{connectionStatus === 'connected' ? 'Disconnect' : 'Connect Device'}</span>
-          </button>
+          <div className="h-5 w-px bg-slate-800 shrink-0 mx-1" />
 
-          {/* Shortcuts Help Icon */}
+          {/* Target Board Selector with Fixed/Max Width (Never overflows!) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] text-slate-400 font-semibold hidden md:inline">Board:</span>
+            <div className="relative">
+              <select
+                value={selectedDeviceId}
+                onChange={(e) => handleDeviceChange(e.target.value)}
+                className="appearance-none bg-slate-850 hover:bg-slate-800 text-white text-xs font-semibold pl-2.5 pr-7 py-1.5 rounded-md border border-slate-700 hover:border-[#FF6D33]/60 focus:outline-none focus:ring-1 focus:ring-[#FF6D33] cursor-pointer transition-colors w-[200px] sm:w-[230px] lg:w-[260px] truncate shadow-xs"
+                title="Select target microcontroller development board"
+              >
+                {devices.map((dev) => (
+                  <option key={dev.id} value={dev.id} className="bg-slate-900 text-white py-1">
+                    {dev.name} ({dev.operatingVoltage})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Presets & Templates Selector with Fixed Width (Never overflows!) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] text-slate-400 font-semibold hidden lg:inline">Template:</span>
+            <div className="relative">
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleLoadPreset(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                defaultValue=""
+                className="appearance-none bg-slate-850 hover:bg-slate-800 text-slate-200 text-xs font-medium pl-2.5 pr-7 py-1.5 rounded-md border border-slate-700 hover:border-[#FF6D33]/60 focus:outline-none cursor-pointer transition-colors w-[180px] sm:w-[210px] lg:w-[240px] truncate shadow-xs"
+                title="Load standard firmware presets or test chip auto-detection"
+              >
+                <option value="" disabled className="bg-slate-900 text-slate-400">
+                  Select Code Template...
+                </option>
+                <optgroup label="Official Digicomp Presets" className="bg-slate-900 text-slate-400 font-semibold">
+                  {EXAMPLE_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id} className="bg-slate-900 text-white py-1">
+                      {preset.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="⚡ Test Chip Auto-Detection" className="bg-slate-900 text-[#FF6D33] font-semibold">
+                  <option value="simulate-esp32-s3" className="bg-slate-900 text-white">
+                    ⚡ Auto-Detect: Digicomp ESP32-S3 (COM3)
+                  </option>
+                  <option value="simulate-rp2350" className="bg-slate-900 text-white">
+                    🔷 Auto-Detect: Digicomp RP2350 (COM4)
+                  </option>
+                  <option value="simulate-ch32v006" className="bg-slate-900 text-white">
+                    ⚡ Auto-Detect: Digicomp CH32V006 (COM5)
+                  </option>
+                  <option value="simulate-arduino-uno" className="bg-slate-900 text-white">
+                    🟩 Auto-Detect: Arduino Uno R3 (COM1)
+                  </option>
+                </optgroup>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Technical Spec Badges & Utilities */}
+        <div className="hidden xl:flex items-center gap-2.5 text-xs text-slate-400 font-mono shrink-0">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#0A0D14] border border-slate-800 text-[11px]">
+            <span className="text-slate-500">MCU:</span>
+            <span className="text-[#FF6D33] font-semibold">{selectedDevice.mcu}</span>
+            <span className="text-slate-600">@</span>
+            <span className="text-slate-300">{selectedDevice.clockSpeed}</span>
+          </div>
+
+          <div className="flex items-center gap-1 px-2 py-1 rounded bg-[#0A0D14] border border-slate-800 text-[11px]">
+            <span className="text-slate-500">Rail:</span>
+            <span className="text-emerald-400 font-semibold">{selectedDevice.operatingVoltage}</span>
+          </div>
+
           <button
-            onClick={() => setShowShortcutsModal(true)}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors hidden sm:block cursor-pointer"
-            title="Keyboard shortcuts (F1)"
+            onClick={handleFormatCode}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-sans transition-colors cursor-pointer"
+            title="Auto-format active code (Shift+Alt+F)"
           >
-            <Keyboard className="w-4 h-4" />
+            <Code2 className="w-3.5 h-3.5 text-[#FF6D33]" />
+            <span>Format</span>
           </button>
         </div>
-      </header>
+      </div>
 
       {/* WORKSPACE MAIN BODY: Split Pane (Left Sidebar + Center Editor) */}
       <div className="flex-1 flex min-h-0 relative">
@@ -1107,12 +1479,12 @@ export default function HardwareLabPage() {
           {isSidebarOpen ? (
             <>
               {/* Sidebar Tabs */}
-              <div className="flex items-center border-b border-slate-800 bg-slate-950/60 text-xs">
+              <div className="flex items-center border-b border-slate-800 bg-[#0B0F17]/80 text-xs">
                 <button
                   onClick={() => setLeftTab('files')}
                   className={`flex-1 py-2 px-2 flex items-center justify-center gap-1 font-medium border-b-2 transition-colors ${
                     leftTab === 'files'
-                      ? 'border-sky-500 text-sky-400 bg-slate-900/80'
+                      ? 'border-[#FF6D33] text-[#FF6D33] bg-[#FF6D33]/10'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -1123,7 +1495,7 @@ export default function HardwareLabPage() {
                   onClick={() => setLeftTab('specs')}
                   className={`flex-1 py-2 px-2 flex items-center justify-center gap-1 font-medium border-b-2 transition-colors ${
                     leftTab === 'specs'
-                      ? 'border-sky-500 text-sky-400 bg-slate-900/80'
+                      ? 'border-[#FF6D33] text-[#FF6D33] bg-[#FF6D33]/10'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -1167,7 +1539,7 @@ export default function HardwareLabPage() {
                         </button>
                         <button
                           onClick={() => setNewFilePrompt(true)}
-                          className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-sky-400 transition-colors"
+                          className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-[#FF6D33] transition-colors"
                           title="Add new source/header file"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -1188,7 +1560,7 @@ export default function HardwareLabPage() {
                             if (e.key === 'Escape') setNewFilePrompt(false);
                           }}
                           autoFocus
-                          className="w-full px-2 py-1 bg-slate-900 border border-slate-600 rounded text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+                          className="w-full px-2 py-1 bg-slate-900 border border-slate-600 rounded text-xs text-white focus:outline-none focus:border-[#FF6D33] font-mono"
                         />
                         <div className="flex justify-end gap-1">
                           <button
@@ -1199,7 +1571,7 @@ export default function HardwareLabPage() {
                           </button>
                           <button
                             onClick={handleCreateFile}
-                            className="px-2 py-0.5 text-[11px] bg-sky-600 hover:bg-sky-500 text-white rounded font-medium"
+                            className="px-2 py-0.5 text-[11px] bg-gradient-to-r from-[#FF6D33] to-[#E3470E] hover:from-[#ff7e47] hover:to-[#eb531b] text-white rounded font-medium"
                           >
                             Create
                           </button>
@@ -1219,7 +1591,7 @@ export default function HardwareLabPage() {
                             onClick={() => setActiveFileName(fileName)}
                             className={`group flex items-center justify-between px-2.5 py-1.5 rounded cursor-pointer transition-colors ${
                               isActive
-                                ? 'bg-sky-950/70 text-sky-300 font-medium border border-sky-800/60 shadow-xs'
+                                ? 'bg-[#FF6D33]/15 text-[#FF6D33] font-medium border border-[#FF6D33]/30 shadow-xs'
                                 : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
                             }`}
                           >
@@ -1229,7 +1601,7 @@ export default function HardwareLabPage() {
                               ) : fileName.endsWith('.md') ? (
                                 <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                               ) : (
-                                <FileCode className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                                <FileCode className="w-3.5 h-3.5 text-[#FF6D33] shrink-0" />
                               )}
                               <span className="truncate font-mono text-[11px]">{fileName}</span>
                             </div>
@@ -1259,7 +1631,7 @@ export default function HardwareLabPage() {
                       </div>
                       <Link
                         href={`/products?search=${encodeURIComponent(selectedDevice.name)}`}
-                        className="text-[11px] text-sky-400 hover:text-sky-300 flex items-center gap-1 group font-medium"
+                        className="text-[11px] text-[#FF6D33] hover:text-[#ff8229] flex items-center gap-1 group font-medium"
                       >
                         <span>View {selectedDevice.name} in store</span>
                         <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
@@ -1283,7 +1655,7 @@ export default function HardwareLabPage() {
                     <div className="grid grid-cols-2 gap-2 text-[10px] bg-slate-950 p-2 rounded border border-slate-800 font-mono">
                       <div>
                         <span className="text-slate-500 block">MCU:</span>
-                        <span className="text-sky-300 font-bold">{selectedDevice.mcu}</span>
+                        <span className="text-[#FF6D33] font-bold">{selectedDevice.mcu}</span>
                       </div>
                       <div>
                         <span className="text-slate-500 block">Clock:</span>
@@ -1312,7 +1684,7 @@ export default function HardwareLabPage() {
                           placeholder="Search pins (e.g. PWM, A0, I2C)..."
                           value={pinSearchQuery}
                           onChange={(e) => setPinSearchQuery(e.target.value)}
-                          className="w-full pl-7 pr-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-sky-500"
+                          className="w-full pl-7 pr-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-[#FF6D33]"
                         />
                         <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1.5" />
                       </div>
@@ -1325,7 +1697,7 @@ export default function HardwareLabPage() {
                             onClick={() => setPinTypeFilter(type)}
                             className={`px-2 py-0.5 rounded capitalize transition-colors ${
                               pinTypeFilter === type
-                                ? 'bg-sky-600 text-white font-semibold'
+                                ? 'bg-[#FF6D33] text-white font-semibold'
                                 : 'bg-slate-800 text-slate-400 hover:text-white'
                             }`}
                           >
@@ -1345,9 +1717,9 @@ export default function HardwareLabPage() {
                               className="flex items-center justify-between text-[11px] p-1.5 rounded bg-slate-950 border border-slate-850 hover:border-slate-700 transition-colors"
                             >
                               <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-mono font-bold text-sky-400 shrink-0">{p.pin}</span>
+                                <span className="font-mono font-bold text-[#FF6D33] shrink-0">{p.pin}</span>
                                 <span className="text-slate-400 text-[10px] truncate" title={p.description}>
-                                  {p.description}
+                                   {p.description}
                                 </span>
                               </div>
                               <span
@@ -1358,7 +1730,7 @@ export default function HardwareLabPage() {
                                     ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
                                     : p.type === 'comm'
                                     ? 'bg-purple-500/10 text-purple-300 border border-purple-500/20'
-                                    : 'bg-sky-500/10 text-sky-300 border border-sky-500/20'
+                                    : 'bg-[#FF6D33]/15 text-[#FF6D33] border border-[#FF6D33]/30'
                                 }`}
                               >
                                 {p.type}
@@ -1422,13 +1794,13 @@ export default function HardwareLabPage() {
                         <div className="p-1.5 rounded bg-slate-800/60 border border-slate-700/40">
                           <span className="text-slate-400 block text-[9px]">MAX PIN CURRENT</span>
                           <span className="font-mono text-white font-bold">
-                            {selectedDevice.id === 'esp32-devkit' ? '12 - 20 mA' : '40 mA (20mA rec.)'}
+                            {selectedDevice.id.startsWith('esp32') ? '12 - 20 mA' : selectedDevice.id === 'rp2350' || selectedDevice.id === 'ch32v006' ? '8 - 12 mA' : '40 mA (20mA rec.)'}
                           </span>
                         </div>
                         <div className="p-1.5 rounded bg-slate-800/60 border border-slate-700/40">
                           <span className="text-slate-400 block text-[9px]">CHIP TOTAL VCC</span>
                           <span className="font-mono text-white font-bold">
-                            {selectedDevice.id === 'esp32-devkit' ? '100 mA' : '200 mA'}
+                            {selectedDevice.id.startsWith('esp32') ? '100 mA' : selectedDevice.id === 'rp2350' ? '50 mA' : '200 mA'}
                           </span>
                         </div>
                       </div>
@@ -1488,7 +1860,7 @@ export default function HardwareLabPage() {
                     <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-semibold text-slate-300">Pre-Power Hardware Checklist</span>
-                        <span className="text-[10px] font-mono text-sky-400">
+                        <span className="text-[10px] font-mono text-[#FF6D33]">
                           {Object.values(checkedSafetyRules).filter(Boolean).length}/5 Verified
                         </span>
                       </div>
@@ -1561,15 +1933,26 @@ export default function HardwareLabPage() {
                     {/* Pinout Cautions for Target */}
                     <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800 space-y-2">
                       <span className="text-[11px] font-semibold text-slate-300">Target Specific Precautions</span>
-                      {selectedDevice.id === 'esp32-devkit' ? (
+                      {selectedDevice.id.startsWith('esp32') ? (
                         <div className="space-y-1.5 text-[10px] text-slate-300">
                           <div className="p-1.5 rounded bg-slate-800/50 border border-slate-700/50">
-                            <span className="text-amber-300 font-bold block">Input-Only Pins (GPI):</span>
-                            GPIO 34, 35, 36 (VP), and 39 (VN) have no output drivers or internal pullups. Only use them as inputs (e.g. analogRead).
+                            <span className="text-amber-300 font-bold block">3.3V Logic Level Protection:</span>
+                            Never connect signals exceeding 3.6V to GPIO pins without a logic level shifter or voltage divider.
                           </div>
                           <div className="p-1.5 rounded bg-slate-800/50 border border-slate-700/50">
                             <span className="text-amber-300 font-bold block">Strapping Boot Pins:</span>
-                            Avoid pulling GPIO 0, 2, 12, or 15 HIGH/LOW at boot time, as they control SPI flash voltage and bootloader mode.
+                            Avoid pulling GPIO 0, 2, 45, or 46 at boot time to prevent bootloader mode conflicts.
+                          </div>
+                        </div>
+                      ) : selectedDevice.id === 'rp2350' || selectedDevice.id === 'ch32v006' ? (
+                        <div className="space-y-1.5 text-[10px] text-slate-300">
+                          <div className="p-1.5 rounded bg-slate-800/50 border border-slate-700/50">
+                            <span className="text-amber-300 font-bold block">3.3V Logic Level Protection:</span>
+                            Operates strictly at 3.3V. Current limit is 8 - 12 mA per pin.
+                          </div>
+                          <div className="p-1.5 rounded bg-slate-800/50 border border-slate-700/50">
+                            <span className="text-amber-300 font-bold block">Boot Mode & USB:</span>
+                            Hold BOOT button while plugging in USB to enter USB Mass Storage flash bootloader.
                           </div>
                         </div>
                       ) : (

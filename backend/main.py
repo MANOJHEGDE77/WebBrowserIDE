@@ -20,6 +20,7 @@ from backend.db import (
 )
 from backend.products import PRODUCTS
 from backend.ai import process_chat_message, MODEL
+from backend.hardware_detector import detector, KNOWN_CHIPS, USB_SIGNATURES, HAS_PYSERIAL
 
 FRONTEND = ROOT / "frontend"
 app = FastAPI(title="DigiComp AI Demo")
@@ -350,57 +351,117 @@ def save_message(conv_id: str, req: MessageSaveRequest, current_user: dict = Dep
     return {"id": req.id, "conversation_id": conv_id, "role": req.role, "content": content_to_save, "product_ids": req.product_ids}
 
 # ----------------------------------------------------
-# HARDWARE CODE LAB ENDPOINTS
+# HARDWARE & CHIP DETECTION ENDPOINTS
 # ----------------------------------------------------
 
-HARDWARE_CATALOG_DEVICES = [
-    {
-        "id": "arduino-uno",
-        "name": "Arduino Uno R3",
-        "sku": "DC-UNO-01",
-        "description": "Standard ATmega328P development board with 14 digital I/O pins and 6 analog inputs.",
-        "mcu": "ATmega328P",
-        "clockSpeed": "16 MHz",
-        "flashMemory": 32256,
-        "sram": 2048,
-        "operatingVoltage": "5V",
-        "defaultBaud": 9600,
-        "supportedBauds": [9600, 19200, 38400, 57600, 115200],
-        "icon": "🟩",
-    },
-    {
-        "id": "arduino-nano",
-        "name": "Arduino Nano",
-        "sku": "DC-NANO-01",
-        "description": "Breadboard-friendly ATmega328P microcontroller with 8 analog inputs and mini/micro USB.",
-        "mcu": "ATmega328P",
-        "clockSpeed": "16 MHz",
-        "flashMemory": 30720,
-        "sram": 2048,
-        "operatingVoltage": "5V",
-        "defaultBaud": 9600,
-        "supportedBauds": [9600, 19200, 38400, 57600, 115200],
-        "icon": "🟦",
-    },
-    {
-        "id": "esp32-devkit",
-        "name": "ESP32 DevKit V1",
-        "sku": "DC-ESP32-01",
-        "description": "Dual-core 240MHz Xtensa LX6 with built-in 802.11 b/g/n Wi-Fi and Bluetooth v4.2 BR/EDR and BLE.",
-        "mcu": "ESP32-D0WDQ6",
-        "clockSpeed": "240 MHz",
-        "flashMemory": 4194304,
-        "sram": 524288,
-        "operatingVoltage": "3.3V",
-        "defaultBaud": 115200,
-        "supportedBauds": [9600, 57600, 115200, 230400, 921600],
-        "icon": "🔧",
-    },
-]
+class InterrogatePortRequest(BaseModel):
+    port: str
+    baud: int = 115200
+    timeout: float = 1.0
+
+
+@app.get("/api/hardware/detect")
+def detect_hardware(
+    active_probe: bool = False,
+    simulate: str | None = None
+):
+    """
+    Auto-detects connected microcontrollers, development boards, and embedded silicon chips.
+    Scans USB COM ports, matches against Digicomp's hardware database, and optionally
+    interrogates the chip over serial.
+    """
+    import time
+    devices = detector.scan_ports(active_probe=active_probe, simulate=simulate)
+    primary = devices[0] if devices else None
+    primary_chip = primary["chip"]["chip_name"] if (primary and primary.get("chip")) else None
+
+    return {
+        "success": True,
+        "count": len(devices),
+        "detected": len(devices) > 0,
+        "devices": devices,
+        "primary_device": primary,
+        "primary_chip": primary_chip,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    }
+
+
+@app.get("/api/hardware/ports")
+def list_hardware_ports():
+    """
+    Returns all currently connected serial / USB COM ports on the host system.
+    """
+    devices = detector.scan_ports(active_probe=False)
+    return {
+        "success": True,
+        "count": len(devices),
+        "ports": devices
+    }
+
+
+@app.post("/api/hardware/interrogate")
+def interrogate_hardware_chip(req: InterrogatePortRequest):
+    """
+    Sends an active low-level serial probe to interrogate the connected chip
+    (e.g., ESP32 ROM bootloader sync, AVR STK500 sync, or MicroPython REPL probe).
+    """
+    result = detector.interrogate_port(port_name=req.port, baud=req.baud, timeout=req.timeout)
+    return {
+        "success": result.get("success", False),
+        "port": req.port,
+        "result": result
+    }
+
 
 @app.get("/api/hardware/devices")
 def get_hardware_devices():
-    return {"success": True, "devices": HARDWARE_CATALOG_DEVICES}
+    """
+    Returns the official Digicomp development board catalog with default firmware templates,
+    pinout definitions, and electrical guardrails.
+    """
+    catalog = detector.get_known_catalog()
+    return {"success": True, "devices": catalog}
+
+
+@app.get("/api/hardware/chip-info/{chip_id}")
+def get_chip_info(chip_id: str):
+    """
+    Returns technical specs, pinout, safety rules, and architecture for a specific chip.
+    """
+    if chip_id not in KNOWN_CHIPS:
+        raise HTTPException(status_code=404, detail=f"Chip '{chip_id}' not found in hardware database.")
+    chip = KNOWN_CHIPS[chip_id]
+    return {
+        "success": True,
+        "chip": detector.to_hardware_device_format(chip)
+    }
+
+
+@app.get("/api/hardware/events")
+def get_hardware_events():
+    """
+    Returns recent hardware connect and disconnect audit events.
+    """
+    return {
+        "success": True,
+        "events": detector.get_events()
+    }
+
+
+@app.get("/api/hardware/status")
+def get_hardware_status():
+    """
+    Returns detector subsystem health and system COM port count.
+    """
+    devices = detector.scan_ports(active_probe=False)
+    return {
+        "status": "ready",
+        "pyserial_available": HAS_PYSERIAL,
+        "connected_ports": len(devices),
+        "known_signatures": len(USB_SIGNATURES),
+        "supported_chips": list(KNOWN_CHIPS.keys()),
+        "platform": sys.platform
+    }
 
 
 if __name__ == "__main__":

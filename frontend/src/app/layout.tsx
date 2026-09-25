@@ -7,9 +7,15 @@ import Footer from '@/components/Footer';
 import FloatingAIButton from '@/components/FloatingAIButton';
 
 export const metadata: Metadata = {
-  title: 'DigiComp | Electronics & Microcontroller Components',
+  title: 'Digicomp Technologies — Engineered for Innovators',
   description:
-    'DigiComp is a professional electronics and microcontroller distributor offering ESP32, Arduino, sensors, motor drivers, motors, and robotics prototyping hardware.',
+    'Digicomp Technologies — Research-grade development boards, BMS, and FPGA modules designed and manufactured in India. Open-source documentation, industrial reliability.',
+  icons: {
+    icon: '/images/digicomp/logo.svg',
+    shortcut: '/images/digicomp/logo.svg',
+    apple: '/images/digicomp/logo.svg',
+  },
+  themeColor: '#FF6D33',
 };
 
 export default function RootLayout({
@@ -18,12 +24,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full bg-slate-50 text-slate-900 antialiased">
-      <body className="min-h-screen flex flex-col font-sans">
+    <html lang="en" className="h-full bg-white text-slate-900 antialiased">
+      <head>
+        <link rel="icon" type="image/svg+xml" href="/images/digicomp/logo.svg" />
+      </head>
+      <body className="min-h-screen flex flex-col font-sans bg-white">
         <AuthProvider>
           <CartProvider>
             <Header />
-            <main className="flex-1 flex flex-col min-h-0 bg-slate-50">{children}</main>
+            <main className="flex-1 flex flex-col min-h-0">{children}</main>
             <Footer />
             <FloatingAIButton />
           </CartProvider>
@@ -32,4 +41,3 @@ export default function RootLayout({
     </html>
   );
 }
-

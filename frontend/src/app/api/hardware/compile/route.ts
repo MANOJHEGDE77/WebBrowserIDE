@@ -37,8 +37,30 @@ const ARDUINO_MOCK_H = `// DigiComp Hardware Lab - Embedded Runtime Definition
 #define A6 20
 #define A7 21
 
+#define PI 3.1415926535897932384626433832795
+#define HALF_PI 1.5707963267948966192313216916398
+#define TWO_PI 6.283185307179586476925286766559
+
 typedef uint8_t byte;
 typedef bool boolean;
+
+class String : public std::string {
+public:
+  String() : std::string() {}
+  String(const char* s) : std::string(s ? s : "") {}
+  String(const std::string& s) : std::string(s) {}
+  String(int v) : std::string(std::to_string(v)) {}
+  String(float v, int p = 2) : std::string(std::to_string(v)) {}
+  void trim() {}
+  void toUpperCase() {}
+  void toLowerCase() {}
+  int toInt() const { return std::atoi(c_str()); }
+  bool startsWith(const char* prefix) const { return rfind(prefix, 0) == 0; }
+  String substring(size_t from, size_t to = std::string::npos) const {
+    if (to == std::string::npos) return String(substr(from));
+    return String(substr(from, to - from));
+  }
+};
 
 class SerialMock {
 public:
@@ -66,6 +88,8 @@ public:
   }
   bool available() { return false; }
   int read() { return -1; }
+  String readStringUntil(char terminator) { return String(""); }
+  String readString() { return String(""); }
 };
 
 static SerialMock Serial;

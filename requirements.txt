@@ -4,3 +4,4 @@ ollama
 pydantic
 requests
 beautifulsoup4
+pyserial>=3.5
